@@ -12,10 +12,10 @@ import errorHandler, { notFoundHandler } from './middleware/errorHandler.js';
 import { authenticate } from './middleware/auth.js';
 import { createRateLimiter } from './middleware/validation.js';
 import authRoutes from './routes/authRoutes.js';
-// import appointmentRoutes from './routes/appointmentRoutes';
-// import patientRoutes from './routes/patientRoutes';
-// import providerRoutes from './routes/providerRoutes';
-// import videoRoutes from './routes/videoRoutes';
+import appointmentRoutes from './routes/appointmentRoutes.js';
+import patientRoutes from './routes/patientRoutes.js';
+import providerRoutes from './routes/providerRoutes.js';
+// import videoRoutes from './routes/videoRoutes.js';
 import { logger } from './utils/logger.js';
 import { CONSTANTS } from './config/constants.js';
 import prisma from './config/database.js';
@@ -122,12 +122,12 @@ app.get('/health', async (req, res) => {
 // ============================================
 
 // Public routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 
 // Protected routes
-// app.use('/api/appointments', authenticate, appointmentRoutes);
-// app.use('/api/patients', authenticate, patientRoutes);
-// app.use('/api/providers', authenticate, providerRoutes);
+app.use('/api/appointments', authenticate, appointmentRoutes);
+app.use('/api/patients', authenticate, patientRoutes);
+app.use('/api/providers', providerRoutes);
 // app.use('/api/video', authenticate, videoRoutes);
 
 // ============================================
