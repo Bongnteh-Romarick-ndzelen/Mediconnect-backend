@@ -12,16 +12,16 @@ import {
 
 const router = express.Router();
 
-// Public routes
-router.get('/:id', validate(getProviderSchema), ProviderController.getProvider);
-router.get('/:id/availability', validate(getProviderSchema), ProviderController.getProviderAvailability);
-
 // Protected routes
 router.get('/me', authenticate, authorize('PROVIDER'), ProviderController.getCurrentProvider);
 router.put('/me', authenticate, authorize('PROVIDER'), validate(updateProviderSchema), ProviderController.updateCurrentProvider);
 router.post('/me/availability', authenticate, authorize('PROVIDER'), validate(createAvailabilitySchema), ProviderController.createAvailabilitySlot);
 router.put('/me/availability/:id', authenticate, authorize('PROVIDER'), validate(updateAvailabilitySchema), ProviderController.updateAvailabilitySlot);
 router.delete('/me/availability/:id', authenticate, authorize('PROVIDER'), ProviderController.deleteAvailabilitySlot);
+
+// Public routes
+router.get('/:id', validate(getProviderSchema), ProviderController.getProvider);
+router.get('/:id/availability', validate(getProviderSchema), ProviderController.getProviderAvailability);
 
 // Public routes - list providers
 router.get('/', validate(listProvidersSchema), ProviderController.listProviders);

@@ -6,6 +6,10 @@ class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
+    console.log('[EMAIL] SMTP_HOST:', process.env.SMTP_HOST);
+    console.log('[EMAIL] SMTP_USER:', process.env.SMTP_USER);
+    console.log('[EMAIL] SMTP_PASS:', process.env.SMTP_PASS ? '***' : 'NOT SET');
+    
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
@@ -27,10 +31,11 @@ class EmailService {
         html: options.html
       };
 
+      logger.info(`[EMAIL] Sending to ${options.to}: ${options.subject}`);
       await this.transporter.sendMail(mailOptions);
-      logger.info(`Email sent to ${options.to}: ${options.subject}`);
+      logger.info(`[EMAIL] Sent to ${options.to}: ${options.subject}`);
     } catch (error) {
-      logger.error('Email sending failed:', error);
+      logger.error('[EMAIL] Sending failed:', error);
       throw error;
     }
   }

@@ -14,6 +14,7 @@ import type {
 import { emailService } from './emailService.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { CONSTANTS } from '../config/constants.js';
+import { logger } from '../utils/logger.js';
 import prisma from '../config/database.js';
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12');
@@ -23,7 +24,7 @@ export class AuthService {
   // REGISTRATION
   // ============================================
   
-  async register(input: RegisterInput): Promise<AuthResponse> {
+  static async register(input: RegisterInput): Promise<AuthResponse> {
     try {
       // Check if user exists
       const existingUser = await prisma.user.findUnique({
@@ -98,7 +99,7 @@ export class AuthService {
       });
 
       // Generate verification token
-      const verificationToken = this.generateVerificationToken();
+      const verificationToken = AuthService.generateVerificationToken();
       
       // Save verification token
       await prisma.user.update({
@@ -110,10 +111,14 @@ export class AuthService {
       });
 
       // Send verification email
-      await emailService.sendVerificationEmail(user.email, verificationToken, user.profile?.firstName);
+      try {
+        await emailService.sendVerificationEmail(user.email, verificationToken, user.profile?.firstName);
+      } catch (emailError) {
+        logger.warn('Verification email failed:', emailError);
+      }
 
       // Generate tokens
-      const tokens = this.generateTokens(user.id, user.email, user.role);
+      const tokens = AuthService.generateTokens(user.id, user.email, user.role);
 
       return {
         user: {
@@ -131,7 +136,9 @@ export class AuthService {
       };
     } catch (error) {
       if (error instanceof AppError) throw error;
-      throw new AppError('Registration failed', 500, 'REGISTRATION_FAILED');
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      logger.error('Registration error:', error);
+      throw new AppError(message, 500, 'REGISTRATION_FAILED');
     }
   }
 
@@ -139,7 +146,7 @@ export class AuthService {
   // LOGIN
   // ============================================
   
-  async login(input: LoginInput): Promise<AuthResponse> {
+  static async login(input: LoginInput): Promise<AuthResponse> {
     try {
       // Find user
       const user = await prisma.user.findUnique({
@@ -173,14 +180,14 @@ export class AuthService {
       // Verify password
       const isValid = await bcrypt.compare(input.password, user.password);
       if (!isValid) {
-        await this.handleFailedLogin(user.id);
+        await AuthService.handleFailedLogin(user.id);
         throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
       }
 
       // Check if email is verified
       if (!user.isVerified) {
         // Resend verification email
-        const verificationToken = this.generateVerificationToken();
+        const verificationToken = AuthService.generateVerificationToken();
         await prisma.user.update({
           where: { id: user.id },
           data: {
@@ -212,7 +219,7 @@ export class AuthService {
       });
 
       // Generate tokens
-      const tokens = this.generateTokens(user.id, user.email, user.role);
+      const tokens = AuthService.generateTokens(user.id, user.email, user.role);
 
       // Create session
       await prisma.session.create({
@@ -228,7 +235,7 @@ export class AuthService {
       });
 
       // Log login
-      await this.logActivity(user.id, 'LOGIN', true);
+      await AuthService.logActivity(user.id, 'LOGIN', true);
 
       return {
         user: {
@@ -254,7 +261,7 @@ export class AuthService {
   // TOKEN MANAGEMENT
   // ============================================
   
-  generateTokens(userId: string, email: string, role: Role) {
+  static generateTokens(userId: string, email: string, role: Role) {
     const accessToken = jwt.sign(
       { userId, email, role },
       process.env.JWT_SECRET!,
@@ -274,7 +281,7 @@ export class AuthService {
     };
   }
 
-  async refreshToken(refreshToken: string): Promise<{ accessToken: string }> {
+  static async refreshToken(refreshToken: string): Promise<{ accessToken: string }> {
     try {
       // Verify refresh token
       const decoded = jwt.verify(
@@ -329,7 +336,7 @@ export class AuthService {
   // PASSWORD MANAGEMENT
   // ============================================
   
-  async forgotPassword(input: ForgotPasswordInput): Promise<void> {
+  static async forgotPassword(input: ForgotPasswordInput): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { email: input.email.toLowerCase() },
       include: { profile: true }
@@ -341,7 +348,7 @@ export class AuthService {
     }
 
     // Generate reset token
-    const resetToken = this.generateResetToken();
+    const resetToken = AuthService.generateResetToken();
     const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await prisma.user.update({
@@ -360,7 +367,7 @@ export class AuthService {
     );
   }
 
-  async resetPassword(input: ResetPasswordInput): Promise<void> {
+  static async resetPassword(input: ResetPasswordInput): Promise<void> {
     const user = await prisma.user.findFirst({
       where: {
         resetToken: input.token,
@@ -398,10 +405,10 @@ export class AuthService {
     });
 
     // Log password change
-    await this.logActivity(user.id, 'UPDATE', true);
+    await AuthService.logActivity(user.id, 'UPDATE', true);
   }
 
-  async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
+  static async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
@@ -439,7 +446,7 @@ export class AuthService {
   // EMAIL VERIFICATION
   // ============================================
   
-  async verifyEmail(token: string): Promise<void> {
+  static async verifyEmail(token: string): Promise<void> {
     const user = await prisma.user.findFirst({
       where: {
         verificationToken: token,
@@ -463,7 +470,7 @@ export class AuthService {
     });
   }
 
-  async resendVerificationEmail(email: string): Promise<void> {
+  static async resendVerificationEmail(email: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       include: { profile: true }
@@ -478,7 +485,7 @@ export class AuthService {
     }
 
     // Generate new verification token
-    const verificationToken = this.generateVerificationToken();
+    const verificationToken = AuthService.generateVerificationToken();
 
     await prisma.user.update({
       where: { id: user.id },
@@ -499,7 +506,7 @@ export class AuthService {
   // LOGOUT
   // ============================================
   
-  async logout(userId: string, refreshToken?: string): Promise<void> {
+  static async logout(userId: string, refreshToken?: string): Promise<void> {
     // Revoke specific session if refresh token provided
     if (refreshToken) {
       await prisma.session.updateMany({
@@ -523,22 +530,22 @@ export class AuthService {
       });
     }
 
-    await this.logActivity(userId, 'LOGOUT', true);
+    await AuthService.logActivity(userId, 'LOGOUT', true);
   }
 
   // ============================================
   // HELPER METHODS
   // ============================================
   
-  private generateVerificationToken(): string {
+  private static generateVerificationToken(): string {
     return randomBytes(32).toString('hex');
   }
 
-  private generateResetToken(): string {
+  private static generateResetToken(): string {
     return randomBytes(32).toString('hex');
   }
 
-  private async handleFailedLogin(userId: string): Promise<void> {
+  private static async handleFailedLogin(userId: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
@@ -563,10 +570,10 @@ export class AuthService {
       data: updateData
     });
 
-    await this.logActivity(userId, 'UPDATE', false);
+    await AuthService.logActivity(userId, 'UPDATE', false);
   }
 
-  private async logActivity(userId: string, action: string, success: boolean): Promise<void> {
+  private static async logActivity(userId: string, action: string, success: boolean): Promise<void> {
     await prisma.auditLog.create({
       data: {
         userId,

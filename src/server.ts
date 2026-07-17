@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,23 +6,23 @@ import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
-import dotenv from 'dotenv';
 import { corsOptions } from './middleware/validation.js';
 import { requestLogger } from './middleware/validation.js';
 import errorHandler, { notFoundHandler } from './middleware/errorHandler.js';
-import { authenticate } from './middleware/auth.js';
+import { authenticate, authorize } from './middleware/auth.js';
 import { createRateLimiter } from './middleware/validation.js';
 import authRoutes from './routes/authRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
 import patientRoutes from './routes/patientRoutes.js';
 import providerRoutes from './routes/providerRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import medicalRecordRoutes from './routes/medicalRecordRoutes.js';
+import prescriptionRoutes from './routes/prescriptionRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 // import videoRoutes from './routes/videoRoutes.js';
 import { logger } from './utils/logger.js';
 import { CONSTANTS } from './config/constants.js';
 import prisma from './config/database.js';
-
-// Load environment variables
-dotenv.config();
 
 // ============================================
 // APP INITIALIZATION
@@ -128,6 +129,10 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/appointments', authenticate, appointmentRoutes);
 app.use('/api/patients', authenticate, patientRoutes);
 app.use('/api/providers', providerRoutes);
+app.use('/api/admin', authenticate, authorize('ADMIN', 'SUPPORT'), adminRoutes);
+app.use('/api/medical-records', authenticate, medicalRecordRoutes);
+app.use('/api/prescriptions', authenticate, prescriptionRoutes);
+app.use('/api/reviews', authenticate, reviewRoutes);
 // app.use('/api/video', authenticate, videoRoutes);
 
 // ============================================

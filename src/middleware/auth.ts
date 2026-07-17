@@ -1,12 +1,10 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { ExtendedPrismaClient } from '../config/database.js';
+import prisma from '../config/database.js';
 import type { TokenPayload } from '../types/auth.types.js';
 import { AppError } from './errorHandler.js';
 import { CONSTANTS } from '../config/constants.js';
 import { logger } from '../utils/logger.js';
-
-const prisma = new ExtendedPrismaClient();
 
 export interface AuthRequest extends Request {
   user?: {

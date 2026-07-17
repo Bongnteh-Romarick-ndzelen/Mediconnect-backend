@@ -10,12 +10,12 @@ import {
 
 const router = express.Router();
 
-// Public routes
-router.get('/:id', validate(getPatientSchema), PatientController.getPatient);
-
 // Protected routes - only authenticated users
 router.get('/me', authenticate, PatientController.getCurrentPatient);
 router.put('/me', authenticate, validate(updatePatientSchema), PatientController.updateCurrentPatient);
+
+// Public routes
+router.get('/:id', validate(getPatientSchema), PatientController.getPatient);
 
 // Admin/Support routes
 router.get('/', authenticate, authorize('ADMIN', 'SUPPORT'), validate(listPatientsSchema), PatientController.listPatients);

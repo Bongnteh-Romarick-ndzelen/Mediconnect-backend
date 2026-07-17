@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express-serve-static-core';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
 import { CONSTANTS } from '../config/constants.js';
 import { logger } from '../utils/logger.js';

@@ -129,31 +129,8 @@ export const updateProfileSchema = z.object({
   })
 });
 
-export const updatePatientSchema = z.object({
-  body: z.object({
-    allergies: z.array(z.string()).optional(),
-    chronicConditions: z.array(z.string()).optional(),
-    bloodGroup: z.enum(['A_POSITIVE', 'A_NEGATIVE', 'B_POSITIVE', 'B_NEGATIVE', 'AB_POSITIVE', 'AB_NEGATIVE', 'O_POSITIVE', 'O_NEGATIVE']).optional(),
-    weight: z.number().positive().optional(),
-    height: z.number().positive().optional(),
-    smokingStatus: z.boolean().optional(),
-    alcoholConsumption: z.boolean().optional()
-  })
-});
-
-export const updateProviderSchema = z.object({
-  body: z.object({
-    specialty: z.string().optional(),
-    subSpecialties: z.array(z.string()).optional(),
-    hospital: z.string().optional(),
-    department: z.string().optional(),
-    yearsOfExperience: z.number().min(0).optional(),
-    consultationFee: z.number().min(0).optional(),
-    languages: z.array(z.string()).optional(),
-    isAvailable: z.boolean().optional()
-  })
-});
-
+// ============================================
+// PATIENT SCHEMAS
 // ============================================
 // PATIENT SCHEMAS
 // ============================================
@@ -207,6 +184,19 @@ export const listProvidersSchema = z.object({
     specialty: z.string().optional(),
     isAvailable: z.string().optional(),
     hospital: z.string().optional()
+  })
+});
+
+export const updateProviderSchema = z.object({
+  body: z.object({
+    specialty: z.string().optional(),
+    subSpecialties: z.array(z.string()).optional(),
+    hospital: z.string().optional(),
+    department: z.string().optional(),
+    yearsOfExperience: z.number().min(0).optional(),
+    consultationFee: z.number().min(0).optional(),
+    languages: z.array(z.string()).optional(),
+    isAvailable: z.boolean().optional()
   })
 });
 
@@ -312,5 +302,249 @@ export const cancelAppointmentSchema = z.object({
   body: z.object({
     cancellationReason: z.string().min(1, 'Cancellation reason is required'),
     cancelledBy: z.string().min(1, 'Cancelled by is required')
+  })
+});
+
+// ============================================
+// ADMIN SCHEMAS
+// ============================================
+
+export const adminListUsersSchema = z.object({
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    search: z.string().optional(),
+    role: z.string().optional(),
+    isActive: z.string().optional(),
+    isVerified: z.string().optional()
+  })
+});
+
+export const adminUpdateUserSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'User ID is required')
+  }),
+  body: z.object({
+    role: z.enum(['PATIENT', 'PROVIDER', 'ADMIN', 'SUPPORT']).optional(),
+    isActive: z.boolean().optional(),
+    isVerified: z.boolean().optional(),
+    isLocked: z.boolean().optional(),
+    twoFactorEnabled: z.boolean().optional()
+  })
+});
+
+export const adminListAppointmentsSchema = z.object({
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    status: z.string().optional(),
+    type: z.string().optional(),
+    providerId: z.string().optional(),
+    patientId: z.string().optional(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional(),
+    search: z.string().optional()
+  })
+});
+
+export const adminUpdateAppointmentSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Appointment ID is required')
+  }),
+  body: z.object({
+    status: z.enum(['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'RESCHEDULED', 'NO_SHOW', 'WAITING']).optional(),
+    type: z.enum(['GENERAL', 'SPECIALIST', 'FOLLOW_UP', 'EMERGENCY', 'CONSULTATION', 'TELEHEALTH', 'IN_PERSON']).optional(),
+    priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).optional(),
+    notes: z.string().optional(),
+    notesPrivate: z.record(z.string, z.any).optional(),
+    cancelledBy: z.string().optional(),
+    cancellationReason: z.string().optional()
+  })
+});
+
+export const adminStatsSchema = z.object({
+  query: z.object({
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional()
+  })
+});
+
+// ============================================
+// MEDICAL RECORD SCHEMAS
+// ============================================
+
+export const createMedicalRecordSchema = z.object({
+  body: z.object({
+    patientId: z.string().min(1, 'Patient ID is required'),
+    appointmentId: z.string().optional(),
+    type: z.enum(['CONSULTATION', 'LAB_RESULT', 'IMAGING', 'SURGERY', 'VACCINATION', 'MEDICATION', 'ALLERGY', 'OTHER']),
+    title: z.string().min(1, 'Title is required'),
+    description: z.string().optional(),
+    diagnosis: z.record(z.string, z.any).optional(),
+    treatment: z.record(z.string, z.any).optional(),
+    symptoms: z.string().optional(),
+    vitals: z.record(z.string, z.any).optional(),
+    notes: z.string().optional(),
+    attachments: z.array(z.string()).optional(),
+    isConfidential: z.boolean().optional(),
+    isShared: z.boolean().optional(),
+    sharedWith: z.record(z.string, z.any).optional()
+  })
+});
+
+export const updateMedicalRecordSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Medical record ID is required')
+  }),
+  body: z.object({
+    type: z.enum(['CONSULTATION', 'LAB_RESULT', 'IMAGING', 'SURGERY', 'VACCINATION', 'MEDICATION', 'ALLERGY', 'OTHER']).optional(),
+    title: z.string().min(1).optional(),
+    description: z.string().optional(),
+    diagnosis: z.record(z.string, z.any).optional(),
+    treatment: z.record(z.string, z.any).optional(),
+    symptoms: z.string().optional(),
+    vitals: z.record(z.string, z.any).optional(),
+    notes: z.string().optional(),
+    attachments: z.array(z.string()).optional(),
+    isConfidential: z.boolean().optional(),
+    isShared: z.boolean().optional(),
+    sharedWith: z.record(z.string, z.any).optional()
+  })
+});
+
+export const getMedicalRecordSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Medical record ID is required')
+  })
+});
+
+export const listMedicalRecordsSchema = z.object({
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    type: z.string().optional(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional(),
+    patientId: z.string().optional(),
+    providerId: z.string().optional()
+  })
+});
+
+// ============================================
+// PRESCRIPTION SCHEMAS
+// ============================================
+
+export const createPrescriptionSchema = z.object({
+  body: z.object({
+    patientId: z.string().min(1, 'Patient ID is required'),
+    appointmentId: z.string().optional(),
+    medication: z.string().min(1, 'Medication is required'),
+    dosage: z.string().min(1, 'Dosage is required'),
+    frequency: z.string().min(1, 'Frequency is required'),
+    duration: z.string().min(1, 'Duration is required'),
+    instructions: z.string().optional(),
+    refills: z.number().min(0).optional(),
+    startDate: z.string().datetime(),
+    endDate: z.string().datetime().optional(),
+    pharmacy: z.record(z.string, z.any).optional(),
+    eRxId: z.string().optional(),
+    DEA: z.string().optional(),
+    NDC: z.string().optional()
+  })
+});
+
+export const updatePrescriptionSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Prescription ID is required')
+  }),
+  body: z.object({
+    medication: z.string().min(1).optional(),
+    dosage: z.string().min(1).optional(),
+    frequency: z.string().min(1).optional(),
+    duration: z.string().min(1).optional(),
+    instructions: z.string().optional(),
+    refills: z.number().min(0).optional(),
+    status: z.enum(['ACTIVE', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REFILL_REQUESTED']).optional(),
+    endDate: z.string().datetime().optional(),
+    pharmacy: z.record(z.string, z.any).optional(),
+    pharmacyFilled: z.boolean().optional(),
+    filledAt: z.string().datetime().optional(),
+    filledBy: z.string().optional()
+  })
+});
+
+export const getPrescriptionSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Prescription ID is required')
+  })
+});
+
+export const listPrescriptionsSchema = z.object({
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    status: z.string().optional(),
+    patientId: z.string().optional(),
+    providerId: z.string().optional(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional()
+  })
+});
+
+export const requestRefillSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Prescription ID is required')
+  })
+});
+
+// ============================================
+// REVIEW SCHEMAS
+// ============================================
+
+export const createReviewSchema = z.object({
+  body: z.object({
+    appointmentId: z.string().min(1, 'Appointment ID is required'),
+    providerId: z.string().min(1, 'Provider ID is required'),
+    rating: z.number().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
+    comment: z.string().optional(),
+    isAnonymous: z.boolean().optional()
+  })
+});
+
+export const updateReviewSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Review ID is required')
+  }),
+  body: z.object({
+    rating: z.number().min(1).max(5).optional(),
+    comment: z.string().optional(),
+    isAnonymous: z.boolean().optional()
+  })
+});
+
+export const respondToReviewSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Review ID is required')
+  }),
+  body: z.object({
+    providerResponse: z.string().min(1, 'Response is required')
+  })
+});
+
+export const getReviewSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Review ID is required')
+  })
+});
+
+export const listReviewsSchema = z.object({
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    providerId: z.string().optional(),
+    patientId: z.string().optional(),
+    rating: z.string().optional(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional()
   })
 });
