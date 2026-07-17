@@ -19,6 +19,8 @@ import adminRoutes from './routes/adminRoutes.js';
 import medicalRecordRoutes from './routes/medicalRecordRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import fileUploadRoutes from './routes/fileUploadRoutes.js';
 // import videoRoutes from './routes/videoRoutes.js';
 import { logger } from './utils/logger.js';
 import { CONSTANTS } from './config/constants.js';
@@ -133,6 +135,8 @@ app.use('/api/admin', authenticate, authorize('ADMIN', 'SUPPORT'), adminRoutes);
 app.use('/api/medical-records', authenticate, medicalRecordRoutes);
 app.use('/api/prescriptions', authenticate, prescriptionRoutes);
 app.use('/api/reviews', authenticate, reviewRoutes);
+app.use('/api/notifications', authenticate, notificationRoutes);
+app.use('/api/uploads', authenticate, fileUploadRoutes);
 // app.use('/api/video', authenticate, videoRoutes);
 
 // ============================================

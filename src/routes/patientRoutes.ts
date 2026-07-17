@@ -1,7 +1,9 @@
 import express from 'express';
 import { PatientController } from '../controllers/patientController.js';
+import { ProfilePictureController } from '../controllers/profilePictureController.js';
 import { validate } from '../middleware/validation.js';
 import { authenticate, authorize } from '../middleware/auth.js';
+import { upload } from '../services/fileUploadService.js';
 import {
   updatePatientSchema,
   listPatientsSchema,
@@ -9,6 +11,10 @@ import {
 } from '../schemas/validation.js';
 
 const router = express.Router();
+
+// Profile picture upload
+router.post('/avatar', authenticate, upload.single('avatar'), ProfilePictureController.uploadProfilePicture);
+router.delete('/avatar', authenticate, ProfilePictureController.deleteProfilePicture);
 
 // Protected routes - only authenticated users
 router.get('/me', authenticate, PatientController.getCurrentPatient);

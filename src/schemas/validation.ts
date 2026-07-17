@@ -548,3 +548,37 @@ export const listReviewsSchema = z.object({
     endDate: z.string().datetime().optional()
   })
 });
+
+// ============================================
+// NOTIFICATION SCHEMAS
+// ============================================
+
+export const listNotificationsSchema = z.object({
+  query: z.object({
+    page: z.string().optional(),
+    limit: z.string().optional(),
+    isRead: z.string().optional(),
+    type: z.string().optional(),
+    priority: z.string().optional()
+  })
+});
+
+export const markNotificationReadSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, 'Notification ID is required')
+  })
+});
+
+export const markAllNotificationsReadSchema = z.object({});
+
+// ============================================
+// FILE UPLOAD SCHEMAS
+// ============================================
+
+export const uploadFileSchema = z.object({
+  body: z.object({
+    type: z.enum(['PROFILE_IMAGE', 'MEDICAL_DOCUMENT', 'LAB_RESULT', 'IMAGING', 'PRESCRIPTION', 'INSURANCE', 'OTHER']),
+    description: z.string().optional(),
+    isConfidential: z.boolean().optional()
+  })
+});
