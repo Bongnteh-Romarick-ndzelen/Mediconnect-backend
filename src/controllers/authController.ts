@@ -291,8 +291,6 @@ export class AuthController {
         where: { id: userId },
         data: {
           email: data.email,
-          phone: data.phone,
-          avatar: data.avatar,
           sessionTimeoutMinutes: data.sessionTimeoutMinutes,
           profile: {
             upsert: {
@@ -308,34 +306,51 @@ export class AuthController {
                 address: data.location ? { city: data.location } : undefined,
               },
               update: {
-                firstName: data.name?.split(' ')[0] || undefined,
-                lastName: data.name?.split(' ').slice(1).join(' ') || undefined,
-                phoneNumber: data.phone,
-                dateOfBirth: data.dob ? new Date(data.dob) : undefined,
-                gender: data.gender as any,
-                avatar: data.avatar,
-                bio: data.bio,
-                emergencyContact: data.emergencyContact,
-                address: data.location ? { city: data.location } : undefined,
+                ...(data.name && { firstName: data.name.split(' ')[0] || undefined }),
+                ...(data.name && { lastName: data.name.split(' ').slice(1).join(' ') || undefined }),
+                ...(data.phone && { phoneNumber: data.phone }),
+                ...(data.dob && { dateOfBirth: new Date(data.dob) }),
+                ...(data.gender && { gender: data.gender as any }),
+                ...(data.avatar && { avatar: data.avatar }),
+                ...(data.bio && { bio: data.bio }),
+                ...(data.emergencyContact && { emergencyContact: data.emergencyContact }),
+                ...(data.location && { address: { city: data.location } }),
               }
             }
           },
-          patient: data.role === 'PATIENT' ? {
-            update: {
-              allergies: data.allergies,
-              bloodGroup: data.bloodGroup as any,
+          patient: {
+            upsert: {
+              create: {
+                userId,
+                allergies: data.allergies || [],
+                chronicConditions: [],
+              },
+              update: {
+                ...(data.allergies !== undefined && { allergies: data.allergies }),
+                ...(data.bloodGroup !== undefined && { bloodGroup: data.bloodGroup as any }),
+              }
             }
-          } : undefined,
-          provider: data.role === 'PROVIDER' ? {
-            update: {
-              specialty: data.specialty as any,
-              hospital: data.hospital,
-              consultationFee: data.consultationFee,
-              yearsOfExperience: data.yearsOfExperience,
-              licenseNumber: data.licenseNumber,
-              languages: data.languages,
+          },
+          provider: {
+            upsert: {
+              create: {
+                userId,
+                licenseNumber: data.licenseNumber || 'PENDING',
+                specialty: (data.specialty as any) || 'GENERAL_PRACTICE',
+                hospital: data.hospital || 'Not specified',
+                consultationFee: data.consultationFee || 0,
+                isAvailable: true,
+              },
+              update: {
+                ...(data.specialty !== undefined && { specialty: data.specialty as any }),
+                ...(data.hospital !== undefined && { hospital: data.hospital }),
+                ...(data.consultationFee !== undefined && { consultationFee: data.consultationFee }),
+                ...(data.yearsOfExperience !== undefined && { yearsOfExperience: data.yearsOfExperience }),
+                ...(data.licenseNumber !== undefined && { licenseNumber: data.licenseNumber }),
+                ...(data.languages !== undefined && { languages: data.languages }),
+              }
             }
-          } : undefined
+          }
         },
         include: {
           profile: true,

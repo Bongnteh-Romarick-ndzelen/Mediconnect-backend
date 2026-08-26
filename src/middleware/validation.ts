@@ -216,12 +216,12 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
 // CORS middleware (wrapper)
 export const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || ['http://localhost:3000'];
     
     if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error(`Not allowed by CORS: origin ${origin} not in ${allowedOrigins.join(',')}`));
     }
   },
   credentials: true,
