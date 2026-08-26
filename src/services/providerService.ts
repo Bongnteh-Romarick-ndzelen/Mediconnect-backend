@@ -211,7 +211,51 @@ export class ProviderService {
   static async updateProvider(userId: string, data: any) {
     const provider = await prisma.provider.update({
       where: { userId },
-      data,
+      data: {
+        ...(data.specialty !== undefined && { specialty: data.specialty }),
+        ...(data.subSpecialties !== undefined && { subSpecialties: data.subSpecialties }),
+        ...(data.hospital !== undefined && { hospital: data.hospital }),
+        ...(data.department !== undefined && { department: data.department }),
+        ...(data.yearsOfExperience !== undefined && { yearsOfExperience: data.yearsOfExperience }),
+        ...(data.consultationFee !== undefined && { consultationFee: data.consultationFee }),
+        ...(data.languages !== undefined && { languages: data.languages }),
+        ...(data.isAvailable !== undefined && { isAvailable: data.isAvailable }),
+        ...(data.licenseNumber !== undefined && { licenseNumber: data.licenseNumber }),
+        ...(data.certifications !== undefined && { certifications: data.certifications }),
+        ...(data.education !== undefined && { education: data.education }),
+        ...(data.experience !== undefined && { experience: data.experience }),
+        ...(data.workingHours !== undefined && { workingHours: data.workingHours }),
+        ...(data.isVerified !== undefined && { isVerified: data.isVerified }),
+        user: {
+          update: {
+            ...(data.email !== undefined && { email: data.email }),
+            ...(data.phone !== undefined && { phone: data.phone }),
+            ...(data.avatar !== undefined && { avatar: data.avatar }),
+            profile: {
+              upsert: {
+                create: {
+                  firstName: data.name?.split(' ')[0] || '',
+                  lastName: data.name?.split(' ').slice(1).join(' ') || '',
+                  phoneNumber: data.phone,
+                  dateOfBirth: data.dob ? new Date(data.dob) : undefined,
+                  gender: data.gender as any,
+                  avatar: data.avatar,
+                  bio: data.bio,
+                },
+                update: {
+                  ...(data.name && { firstName: data.name.split(' ')[0] || undefined }),
+                  ...(data.name && { lastName: data.name.split(' ').slice(1).join(' ') || undefined }),
+                  ...(data.phone && { phoneNumber: data.phone }),
+                  ...(data.dob && { dateOfBirth: new Date(data.dob) }),
+                  ...(data.gender && { gender: data.gender as any }),
+                  ...(data.avatar && { avatar: data.avatar }),
+                  ...(data.bio && { bio: data.bio }),
+                }
+              }
+            }
+          }
+        }
+      },
       include: {
         user: {
           select: {

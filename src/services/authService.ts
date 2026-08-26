@@ -537,11 +537,11 @@ export class AuthService {
   // HELPER METHODS
   // ============================================
   
-  private static generateVerificationToken(): string {
+  static generateVerificationToken(): string {
     return randomBytes(32).toString('hex');
   }
 
-  private static generateResetToken(): string {
+  static generateResetToken(): string {
     return randomBytes(32).toString('hex');
   }
 
@@ -573,7 +573,7 @@ export class AuthService {
     await AuthService.logActivity(userId, 'UPDATE', false);
   }
 
-  private static async logActivity(userId: string, action: string, success: boolean): Promise<void> {
+  static async logActivity(userId: string, action: string, success: boolean, details?: string): Promise<void> {
     await prisma.auditLog.create({
       data: {
         userId,
@@ -582,7 +582,8 @@ export class AuthService {
         entityId: userId,
         success,
         details: {
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          ...(details ? { message: details } : {})
         }
       }
     });

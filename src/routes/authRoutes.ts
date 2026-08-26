@@ -1,7 +1,7 @@
 import express from 'express';
-import { AuthController } from '../controllers/authController';
-import { validate } from '../middleware/validation';
-import { authenticate } from '../middleware/auth';
+import { AuthController } from '../controllers/authController.js';
+import { validate } from '../middleware/validation.js';
+import { authenticate } from '../middleware/auth.js';
 import { 
   registerSchema, 
   loginSchema, 
@@ -10,8 +10,12 @@ import {
   changePasswordSchema,
   refreshTokenSchema,
   verifyEmailSchema,
-  resendVerificationSchema
-} from '../schemas/validation';
+  resendVerificationSchema,
+  updateUserProfileSchema,
+  toggleMfaSchema,
+  updateUserSettingsSchema,
+  auditLogSchema
+} from '../schemas/validation.js';
 
 const router = express.Router();
 
@@ -28,5 +32,9 @@ router.post('/resend-verification', validate(resendVerificationSchema), AuthCont
 router.post('/logout', authenticate, AuthController.logout);
 router.post('/change-password', authenticate, validate(changePasswordSchema), AuthController.changePassword);
 router.get('/me', authenticate, AuthController.getCurrentUser);
+router.put('/me', authenticate, validate(updateUserProfileSchema), AuthController.updateCurrentUser);
+router.post('/mfa/toggle', authenticate, validate(toggleMfaSchema), AuthController.toggleMfa);
+router.put('/me/settings', authenticate, validate(updateUserSettingsSchema), AuthController.updateCurrentUserSettings);
+router.post('/audit/log', authenticate, validate(auditLogSchema), AuthController.createAuditLog);
 
 export default router;

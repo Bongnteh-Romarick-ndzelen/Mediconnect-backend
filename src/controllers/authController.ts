@@ -10,13 +10,15 @@ import type {
 } from '../types/auth.types.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
+import prisma from '../config/database.js';
+import type { AuthRequest } from '../middleware/auth.js';
 
 export class AuthController {
   // ============================================
   // REGISTER
   // ============================================
   
-  static async register(req: Request, res: Response, next: NextFunction) {
+  static async register(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const input: RegisterInput = req.body;
       
@@ -36,7 +38,7 @@ export class AuthController {
   // LOGIN
   // ============================================
   
-  static async login(req: Request, res: Response, next: NextFunction) {
+  static async login(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const input: LoginInput = {
         ...req.body,
@@ -76,7 +78,7 @@ export class AuthController {
   // REFRESH TOKEN
   // ============================================
   
-  static async refreshToken(req: Request, res: Response, next: NextFunction) {
+  static async refreshToken(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
       
@@ -107,7 +109,7 @@ export class AuthController {
   // FORGOT PASSWORD
   // ============================================
   
-  static async forgotPassword(req: Request, res: Response, next: NextFunction) {
+  static async forgotPassword(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const input: ForgotPasswordInput = req.body;
       
@@ -126,7 +128,7 @@ export class AuthController {
   // RESET PASSWORD
   // ============================================
   
-  static async resetPassword(req: Request, res: Response, next: NextFunction) {
+  static async resetPassword(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const input: ResetPasswordInput = req.body;
       
@@ -145,7 +147,7 @@ export class AuthController {
   // VERIFY EMAIL
   // ============================================
   
-  static async verifyEmail(req: Request, res: Response, next: NextFunction) {
+  static async verifyEmail(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { token } = req.query;
       
@@ -168,7 +170,7 @@ export class AuthController {
   // RESEND VERIFICATION EMAIL
   // ============================================
   
-  static async resendVerificationEmail(req: Request, res: Response, next: NextFunction) {
+  static async resendVerificationEmail(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { email } = req.body;
       
@@ -191,7 +193,7 @@ export class AuthController {
   // LOGOUT
   // ============================================
   
-  static async logout(req: Request, res: Response, next: NextFunction) {
+  static async logout(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.id;
       const refreshToken = req.cookies.refreshToken;
@@ -217,7 +219,7 @@ export class AuthController {
   // CHANGE PASSWORD
   // ============================================
   
-  static async changePassword(req: Request, res: Response, next: NextFunction) {
+  static async changePassword(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.id;
       
@@ -242,7 +244,7 @@ export class AuthController {
   // GET CURRENT USER
   // ============================================
   
-  static async getCurrentUser(req: Request, res: Response, next: NextFunction) {
+  static async getCurrentUser(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.id;
       
@@ -266,6 +268,215 @@ export class AuthController {
       res.json({
         success: true,
         data: user
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============================================
+  // UPDATE CURRENT USER
+  // ============================================
+  
+  static async updateCurrentUser(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      const data = req.body;
+      
+      if (!userId) {
+        throw new AppError('Authentication required', 401, 'UNAUTHORIZED');
+      }
+
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: data.email,
+          phone: data.phone,
+          avatar: data.avatar,
+          sessionTimeoutMinutes: data.sessionTimeoutMinutes,
+          profile: {
+            upsert: {
+              create: {
+                firstName: data.name?.split(' ')[0] || '',
+                lastName: data.name?.split(' ').slice(1).join(' ') || '',
+                phoneNumber: data.phone,
+                dateOfBirth: data.dob ? new Date(data.dob) : undefined,
+                gender: data.gender as any,
+                avatar: data.avatar,
+                bio: data.bio,
+                emergencyContact: data.emergencyContact,
+                address: data.location ? { city: data.location } : undefined,
+              },
+              update: {
+                firstName: data.name?.split(' ')[0] || undefined,
+                lastName: data.name?.split(' ').slice(1).join(' ') || undefined,
+                phoneNumber: data.phone,
+                dateOfBirth: data.dob ? new Date(data.dob) : undefined,
+                gender: data.gender as any,
+                avatar: data.avatar,
+                bio: data.bio,
+                emergencyContact: data.emergencyContact,
+                address: data.location ? { city: data.location } : undefined,
+              }
+            }
+          },
+          patient: data.role === 'PATIENT' ? {
+            update: {
+              allergies: data.allergies,
+              bloodGroup: data.bloodGroup as any,
+            }
+          } : undefined,
+          provider: data.role === 'PROVIDER' ? {
+            update: {
+              specialty: data.specialty as any,
+              hospital: data.hospital,
+              consultationFee: data.consultationFee,
+              yearsOfExperience: data.yearsOfExperience,
+              licenseNumber: data.licenseNumber,
+              languages: data.languages,
+            }
+          } : undefined
+        },
+        include: {
+          profile: true,
+          patient: true,
+          provider: true
+        }
+      });
+
+      await AuthService.logActivity(userId, 'UPDATE', true, 'User profile updated');
+
+      res.json({
+        success: true,
+        data: user
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============================================
+  // TOGGLE MFA
+  // ============================================
+  
+  static async toggleMfa(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      const { enabled } = req.body;
+      
+      if (!userId) {
+        throw new AppError('Authentication required', 401, 'UNAUTHORIZED');
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, twoFactorEnabled: true, twoFactorSecret: true }
+      });
+
+      if (!user) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      }
+
+      const now = new Date().toISOString();
+      let twoFactorSecret = user.twoFactorSecret;
+
+      if (enabled && !user.twoFactorEnabled) {
+        twoFactorSecret = AuthService.generateVerificationToken();
+      } else if (!enabled && user.twoFactorEnabled) {
+        twoFactorSecret = null;
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: enabled,
+          twoFactorSecret
+        },
+        include: {
+          profile: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      });
+
+      await AuthService.logActivity(userId, 'UPDATE', true, `MFA ${enabled ? 'enabled' : 'disabled'}`);
+
+      res.json({
+        success: true,
+        data: {
+          id: updated.id,
+          email: updated.email,
+          twoFactorEnabled: updated.twoFactorEnabled,
+          twoFactorSecret: updated.twoFactorSecret
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============================================
+  // UPDATE USER SETTINGS
+  // ============================================
+  
+  static async updateCurrentUserSettings(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      const { sessionTimeoutMinutes } = req.body;
+      
+      if (!userId) {
+        throw new AppError('Authentication required', 401, 'UNAUTHORIZED');
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          sessionTimeoutMinutes
+        }
+      });
+
+      await AuthService.logActivity(userId, 'UPDATE', true, 'User settings updated');
+
+      res.json({
+        success: true,
+        data: {
+          id: updated.id,
+          sessionTimeoutMinutes: updated.sessionTimeoutMinutes
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============================================
+  // AUDIT LOG
+  // ============================================
+  
+  static async createAuditLog(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      const { action, entityType, entityId, details, success } = req.body;
+      
+      const log = await prisma.auditLog.create({
+        data: {
+          userId: userId || 'anonymous',
+          action: action as any,
+          entityType,
+          entityId,
+          details: details || {},
+          success: success ?? true,
+          ipAddress: req.ip || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        }
+      });
+
+      res.status(201).json({
+        success: true,
+        data: log
       });
     } catch (error) {
       next(error);

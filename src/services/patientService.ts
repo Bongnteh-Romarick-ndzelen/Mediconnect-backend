@@ -236,7 +236,49 @@ export class PatientService {
   static async updatePatient(userId: string, data: any) {
     const patient = await prisma.patient.update({
       where: { userId },
-      data,
+      data: {
+        ...(data.allergies !== undefined && { allergies: data.allergies }),
+        ...(data.chronicConditions !== undefined && { chronicConditions: data.chronicConditions }),
+        ...(data.bloodGroup !== undefined && { bloodGroup: data.bloodGroup }),
+        ...(data.weight !== undefined && { weight: data.weight }),
+        ...(data.height !== undefined && { height: data.height }),
+        ...(data.smokingStatus !== undefined && { smokingStatus: data.smokingStatus }),
+        ...(data.alcoholConsumption !== undefined && { alcoholConsumption: data.alcoholConsumption }),
+        ...(data.preferredLanguage !== undefined && { preferredLanguage: data.preferredLanguage }),
+        ...(data.communicationPreferences !== undefined && { communicationPreferences: data.communicationPreferences }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        user: {
+          update: {
+            ...(data.email !== undefined && { email: data.email }),
+            ...(data.phone !== undefined && { phone: data.phone }),
+            ...(data.avatar !== undefined && { avatar: data.avatar }),
+            profile: {
+              upsert: {
+                create: {
+                  firstName: data.name?.split(' ')[0] || '',
+                  lastName: data.name?.split(' ').slice(1).join(' ') || '',
+                  phoneNumber: data.phone,
+                  dateOfBirth: data.dob ? new Date(data.dob) : undefined,
+                  gender: data.gender as any,
+                  avatar: data.avatar,
+                  bio: data.bio,
+                  emergencyContact: data.emergencyContact,
+                },
+                update: {
+                  ...(data.name && { firstName: data.name.split(' ')[0] || undefined }),
+                  ...(data.name && { lastName: data.name.split(' ').slice(1).join(' ') || undefined }),
+                  ...(data.phone && { phoneNumber: data.phone }),
+                  ...(data.dob && { dateOfBirth: new Date(data.dob) }),
+                  ...(data.gender && { gender: data.gender as any }),
+                  ...(data.avatar && { avatar: data.avatar }),
+                  ...(data.bio && { bio: data.bio }),
+                  ...(data.emergencyContact && { emergencyContact: data.emergencyContact }),
+                }
+              }
+            }
+          }
+        }
+      },
       include: {
         user: {
           select: {

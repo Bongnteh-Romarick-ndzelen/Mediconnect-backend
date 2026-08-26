@@ -582,3 +582,95 @@ export const uploadFileSchema = z.object({
     isConfidential: z.boolean().optional()
   })
 });
+
+// ============================================
+// AUTH / SETTINGS SCHEMAS
+// ============================================
+
+export const updateUserProfileSchema = z.object({
+  body: z.object({
+    name: z.string().min(2).optional(),
+    email: z.string().email().optional(),
+    phone: z.string().min(10).optional(),
+    avatar: z.string().url().optional(),
+    specialty: z.string().optional(),
+    hospital: z.string().optional(),
+    bio: z.string().optional(),
+    location: z.string().optional(),
+    consultationFee: z.number().min(0).optional(),
+    yearsOfExperience: z.number().min(0).optional(),
+    licenseNumber: z.string().optional(),
+    npiNumber: z.string().optional(),
+    deaNumber: z.string().optional(),
+    boardCertification: z.string().optional(),
+    medicalSchool: z.string().optional(),
+    residencyHospital: z.string().optional(),
+    malpracticeCarrier: z.string().optional(),
+    malpracticePolicyNumber: z.string().optional(),
+    languages: z.array(z.string()).optional(),
+    insuranceAccepted: z.array(z.string()).optional(),
+    dob: z.string().optional(),
+    gender: z.enum(['Male', 'Female', 'Other', 'Prefer not to say']).optional(),
+    bloodGroup: z.string().optional(),
+    allergies: z.array(z.string()).optional(),
+    emergencyContact: z.object({
+      name: z.string(),
+      relationship: z.string(),
+      phone: z.string()
+    }).optional(),
+    insuranceProvider: z.string().optional(),
+    insurancePolicyNumber: z.string().optional()
+  })
+});
+
+export const toggleMfaSchema = z.object({
+  body: z.object({
+    enabled: z.boolean()
+  })
+});
+
+export const updateUserSettingsSchema = z.object({
+  body: z.object({
+    sessionTimeoutMinutes: z.number().min(5).max(60).optional()
+  })
+});
+
+export const providerSettingsSchema = z.object({
+  body: z.object({
+    emailNotifications: z.boolean().optional(),
+    smsNotifications: z.boolean().optional(),
+    appointmentReminders: z.boolean().optional(),
+    videoQuality: z.string().optional(),
+    enableRecording: z.boolean().optional(),
+    enableChat: z.boolean().optional(),
+    maxAppointmentsPerDay: z.number().min(1).optional(),
+    breakDuration: z.number().min(0).optional(),
+    bufferTime: z.number().min(0).optional(),
+    autoInvoice: z.boolean().optional(),
+    invoicePrefix: z.string().optional(),
+    slotDuration: z.number().min(15).optional(),
+    allowSameDayBooking: z.boolean().optional(),
+    advanceBookingDays: z.number().min(1).optional(),
+    cancellationPolicy: z.string().optional()
+  })
+});
+
+export const patientSettingsSchema = z.object({
+  body: z.object({
+    emailNotifications: z.boolean().optional(),
+    smsNotifications: z.boolean().optional(),
+    appointmentReminders: z.boolean().optional(),
+    prescriptionAlerts: z.boolean().optional(),
+    labResultAlerts: z.boolean().optional()
+  })
+});
+
+export const auditLogSchema = z.object({
+  body: z.object({
+    action: z.string().min(1),
+    entityType: z.string().min(1),
+    entityId: z.string().optional(),
+    details: z.record(z.string, z.any).optional(),
+    success: z.boolean().optional()
+  })
+});
